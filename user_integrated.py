@@ -594,9 +594,11 @@ def check_user_authentication():
         render_depression_assessment()
         return False
     
-    # Show user dashboard in sidebar
-    with st.sidebar:
-        render_user_dashboard()
+    # Show user dashboard in sidebar (only if not already being used)
+    if not st.session_state.get('sidebar_used', False):
+        with st.sidebar:
+            render_user_dashboard()
+            st.session_state.sidebar_used = True
     
     return True
 

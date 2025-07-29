@@ -343,7 +343,8 @@ class MentalHealthChatbot:
                 'sentiment_analyzer': sentiment_analyzer
             }
         except Exception as e:
-            st.error(f"Error loading models: {e}")
+            st.warning(f"Could not load AI models: {e}")
+            st.info("Using simplified responses without AI models.")
             return None
     
     def load_empathetic_responses(self):
@@ -390,7 +391,23 @@ class MentalHealthChatbot:
         """Analyze sentiment and detect emotional context"""
         models = self.load_models()
         if not models:
-            return 'general', 0.5
+            # Fallback to simple keyword detection
+            text_lower = text.lower()
+            emotion_keywords = {
+                'anxiety': ['anxious', 'worried', 'nervous', 'panic', 'overwhelmed', 'scared'],
+                'depression': ['sad', 'depressed', 'hopeless', 'empty', 'numb', 'worthless'],
+                'stress': ['stressed', 'pressure', 'exhausted', 'tired', 'burned out'],
+                'loneliness': ['lonely', 'alone', 'isolated', 'disconnected', 'abandoned'],
+                'anger': ['angry', 'furious', 'mad', 'irritated', 'frustrated', 'annoyed']
+            }
+            
+            detected_emotion = 'general'
+            for emotion, keywords in emotion_keywords.items():
+                if any(keyword in text_lower for keyword in keywords):
+                    detected_emotion = emotion
+                    break
+            
+            return detected_emotion, 0.7
         
         try:
             # Get sentiment scores
@@ -418,7 +435,7 @@ class MentalHealthChatbot:
             return detected_emotion, confidence
             
         except Exception as e:
-            st.error(f"Error in sentiment analysis: {e}")
+            st.warning(f"Error in sentiment analysis: {e}")
             return 'general', 0.5
     
     def generate_empathetic_response(self, user_input, emotion, confidence):
@@ -455,7 +472,12 @@ class MentalHealthChatbot:
 def main():
     # Initialize components
     if 'chatbot' not in st.session_state:
-        st.session_state.chatbot = MentalHealthChatbot()
+        try:
+            st.session_state.chatbot = MentalHealthChatbot()
+        except Exception as e:
+            st.error(f"Error initializing chatbot: {e}")
+            st.info("Please refresh the page or try again later.")
+            return
     
     if 'messages' not in st.session_state:
         st.session_state.messages = []
@@ -492,32 +514,34 @@ def main():
 def chat_interface():
     """Main chat interface"""
     
-    # Sidebar with resources
-    with st.sidebar:
-        st.markdown("### 📋 Resources & Information")
-        
-        st.markdown("""
-        <div class="emergency-notice">
-            <h4>🆘 Crisis Resources</h4>
-            <p><strong>National Suicide Prevention Lifeline:</strong><br>988</p>
-            <p><strong>Crisis Text Line:</strong><br>Text HOME to 741741</p>
-            <p><strong>Emergency:</strong><br>📞 +91-98204-66726 </p>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # Quick mood log
-        st.markdown("### 😊 Quick Mood Check")
-        col1, col2 = st.columns(2)
-        with col1:
-            mood_score = st.slider("Mood (1-10)", 1, 10, 5, key="quick_mood")
-        with col2:
-            if st.button("Log Mood", type="secondary"):
-                st.session_state.chatbot.mood_tracker.log_mood(mood_score, "general", "Quick check")
-                st.success("Mood logged!")
-        
-        if st.button("Clear Chat", type="secondary"):
-            st.session_state.messages = []
-            st.rerun()
+    # Only use sidebar if not already being used by user dashboard
+    if not st.session_state.get('user_authenticated', False):
+        # Sidebar with resources
+        with st.sidebar:
+            st.markdown("### 📋 Resources & Information")
+            
+            st.markdown("""
+            <div class="emergency-notice">
+                <h4>🆘 Crisis Resources</h4>
+                <p><strong>National Suicide Prevention Lifeline:</strong><br>988</p>
+                <p><strong>Crisis Text Line:</strong><br>Text HOME to 741741</p>
+                <p><strong>Emergency:</strong><br>📞 +91-98204-66726 </p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Quick mood log
+            st.markdown("### 😊 Quick Mood Check")
+            col1, col2 = st.columns(2)
+            with col1:
+                mood_score = st.slider("Mood (1-10)", 1, 10, 5, key="quick_mood")
+            with col2:
+                if st.button("Log Mood", type="secondary"):
+                    st.session_state.chatbot.mood_tracker.log_mood(mood_score, "general", "Quick check")
+                    st.success("Mood logged!")
+            
+            if st.button("Clear Chat", type="secondary"):
+                st.session_state.messages = []
+                st.rerun()
     
     # Emergency notice
     st.markdown("""
