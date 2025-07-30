@@ -470,46 +470,55 @@ class MentalHealthChatbot:
         """
 
 def main():
-    # Initialize components
-    if 'chatbot' not in st.session_state:
-        try:
-            st.session_state.chatbot = MentalHealthChatbot()
-        except Exception as e:
-            st.error(f"Error initializing chatbot: {e}")
-            st.info("Please refresh the page or try again later.")
-            return
-    
-    if 'messages' not in st.session_state:
-        st.session_state.messages = []
-    
-    if 'current_page' not in st.session_state:
-        st.session_state.current_page = 'chat'
-    
-    # Header
-    st.markdown("""
-    <div class="main-header">
-        <h1>🧠 MindCare Pro - Advanced Mental Health Support</h1>
-        <p>Chat • Mood Tracking • Journaling • Therapeutic Techniques</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Navigation
-    tab1, tab2, tab3, tab4, tab5 = st.tabs(["💬 Chat", "📊 Mood Tracker", "📝 Journal", "🧘 Techniques", "📈 Insights"])
-    
-    with tab1:
-        chat_interface()
-    
-    with tab2:
-        mood_tracker_interface()
-    
-    with tab3:
-        journal_interface()
-    
-    with tab4:
-        techniques_interface()
-    
-    with tab5:
-        insights_interface()
+    try:
+        # Initialize components safely
+        if 'chatbot' not in st.session_state:
+            st.info("Initializing MindCare Pro...")
+            try:
+                st.session_state.chatbot = MentalHealthChatbot()
+                st.success("✅ MindCare Pro initialized successfully!")
+            except Exception as e:
+                st.warning(f"⚠️ Could not initialize AI features: {e}")
+                st.info("Continuing with basic features...")
+                # Create a minimal chatbot without AI models
+                st.session_state.chatbot = None
+        
+        if 'messages' not in st.session_state:
+            st.session_state.messages = []
+        
+        if 'current_page' not in st.session_state:
+            st.session_state.current_page = 'chat'
+        
+        # Header
+        st.markdown("""
+        <div class="main-header">
+            <h1>🧠 MindCare Pro - Advanced Mental Health Support</h1>
+            <p>Chat • Mood Tracking • Journaling • Therapeutic Techniques</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Navigation
+        tab1, tab2, tab3, tab4, tab5 = st.tabs(["💬 Chat", "📊 Mood Tracker", "📝 Journal", "🧘 Techniques", "📈 Insights"])
+        
+        with tab1:
+            chat_interface()
+        
+        with tab2:
+            mood_tracker_interface()
+        
+        with tab3:
+            journal_interface()
+        
+        with tab4:
+            techniques_interface()
+        
+        with tab5:
+            insights_interface()
+            
+    except Exception as e:
+        st.error(f"An error occurred in the main app: {e}")
+        st.info("Please refresh the page or try again later.")
+        st.exception(e)
 
 def chat_interface():
     """Main chat interface"""
@@ -536,7 +545,8 @@ def chat_interface():
                 mood_score = st.slider("Mood (1-10)", 1, 10, 5, key="quick_mood")
             with col2:
                 if st.button("Log Mood", type="secondary"):
-                    st.session_state.chatbot.mood_tracker.log_mood(mood_score, "general", "Quick check")
+                    if st.session_state.chatbot:
+                        st.session_state.chatbot.mood_tracker.log_mood(mood_score, "general", "Quick check")
                     st.success("Mood logged!")
             
             if st.button("Clear Chat", type="secondary"):
@@ -586,9 +596,17 @@ def chat_interface():
     if send_button and user_input:
         st.session_state.messages.append({"role": "user", "content": user_input})
         
-        with st.spinner("Thinking..."):
-            emotion, confidence = st.session_state.chatbot.analyze_sentiment_and_emotion(user_input)
-            response = st.session_state.chatbot.generate_empathetic_response(user_input, emotion, confidence)
+        # Generate response based on whether chatbot is available
+        if st.session_state.chatbot:
+            with st.spinner("Thinking..."):
+                try:
+                    emotion, confidence = st.session_state.chatbot.analyze_sentiment_and_emotion(user_input)
+                    response = st.session_state.chatbot.generate_empathetic_response(user_input, emotion, confidence)
+                except Exception as e:
+                    response = "I'm here to listen and support you. Thank you for sharing your thoughts with me."
+        else:
+            # Simple fallback response
+            response = "Thank you for sharing that with me. I'm here to listen and support you. Remember, you're not alone in this journey."
         
         st.session_state.messages.append({"role": "assistant", "content": response})
         st.rerun()

@@ -422,6 +422,10 @@ def render_depression_assessment():
         display_assessment_results(assessment_result)
         
         if st.button("Continue to MindCare Pro", type="primary"):
+            # Clear any form data
+            for key in list(st.session_state.keys()):
+                if key.startswith('q_'):
+                    del st.session_state[key]
             st.rerun()
 
 def display_assessment_results(assessment_result: Dict):
